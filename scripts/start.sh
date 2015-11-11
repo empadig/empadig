@@ -1,10 +1,10 @@
 #!/bin/bash
 
 # inputs
-start_timestamp=`date -d "2015-03-26 09:30:00" "+%s"`
-end_timestamp=`date -d "2015-03-28 09:30:00" "+%s"`
-msm_id=1042245
-db_name="test_db"
+start_timestamp=`date -d "2015-05-13 04:00:00" "+%s"`
+end_timestamp=`date -d "2015-05-13 16:00:00" "+%s"`
+msm_id=1026399
+db_name="outage"
 
 # extrapolate period from inputs
 period=`date -d @$start_timestamp +%Y%m%d%H%M%S`-`date -d @$end_timestamp +%Y%m%d%H%M%S`
