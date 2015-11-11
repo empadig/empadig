@@ -5,7 +5,17 @@ import sys
 import time, calendar
 import random
 from ip2as import Ip2As
+import argparse
 
+parser = argparse.ArgumentParser()
+parser.add_argument('--db_name')
+parser.add_argument('--file_name')
+parser.add_argument('--coloring_type', default="color_by_ip")
+
+named_args = parser.parse_args()
+db_name = named_args.db_name
+file_name = named_args.file_name
+color_type = named_args.coloring_type
 
 def get_event_type(event):
     event_type = "unknown"
@@ -24,8 +34,6 @@ def format_labeled_ip(ip):
     return "%s%s" % (ip[0], "-" if ip[1] == "pre" else "+")
 
 
-file_name = sys.argv[1]
-color_type = sys.argv[2] if len(sys.argv) >= 3 else "color_by_ip"
 if color_type not in ["color_by_ip", "color_by_type"]:
     raise Exception("Unknown coloring: %s" % color_type)
 
@@ -48,7 +56,7 @@ for event in all_events:
         ips2color[fips] = (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
 
 fmt = "%Y-%m-%d %H:%M:%S"
-ip2as = Ip2As()
+ip2as = Ip2As(db_name)
 
 print "# start_date\tend_date\tavg_date\timpact\tr\tg\tb\tips\tlen(ips)\tasns\tholders"
 for event in all_events:

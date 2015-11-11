@@ -4,7 +4,7 @@
 start_timestamp=`date -d "2015-05-13 04:00:00" "+%s"`
 end_timestamp=`date -d "2015-05-13 16:00:00" "+%s"`
 msm_id=1026399
-db_name="outage"
+db_name="test_db"
 
 # extrapolate period from inputs
 period=`date -d @$start_timestamp +%Y%m%d%H%M%S`-`date -d @$end_timestamp +%Y%m%d%H%M%S`
@@ -56,10 +56,10 @@ time python ../algorithm/empadig.py --period $period --db $db_name great_analysi
 mv output.json events-without-lb-heuristic.json
 
 # Make impact data (with heuristic)
-python make_impact_data.py events-with-lb-heuristic.json > impact-data-with-lb-heuristic.dat
+python make_impact_data.py --file_name=events-with-lb-heuristic.json --db_name=$db_name> impact-data-with-lb-heuristic.dat
 
 # Make impact data (without heuristic)
-python make_impact_data.py events-without-lb-heuristic.json > impact-data-without-lb-heuristic.dat
+python make_impact_data.py --file_name=events-without-lb-heuristic.json --db_name=$db_name> impact-data-without-lb-heuristic.dat
 
 # plot events (with heuristic)
 ./plot_events.sh impact-data-with-lb-heuristic.dat events-impact-with-lb-heuristic.png
@@ -68,8 +68,8 @@ python make_impact_data.py events-without-lb-heuristic.json > impact-data-withou
 ./plot_events.sh impact-data-without-lb-heuristic.dat events-impact-without-lb-heuristic.png
 
 # Generate summary events
-python sort_events.py output-without-lb-heuristic.json 20 | python -m json.tool >> events-impact-without-lb-heuristic-top20.json
-python sort_events.py output-with-lb-heuristic.json 20 | python -m json.tool >> events-impact-with-lb-heuristic-top20.json
+python sort_events.py events-without-lb-heuristic.json 20 | python -m json.tool >> events-impact-without-lb-heuristic-top20.json
+python sort_events.py events-with-lb-heuristic.json 20 | python -m json.tool >> events-impact-with-lb-heuristic-top20.json
 
 
 # Clean-up

@@ -1,12 +1,11 @@
 import pymongo
-
+import sys
 
 class Ip2As:
-
-    def __init__(self):
+    def __init__(self, db_name):
         self._map = {}
         client = pymongo.MongoClient()
-        db = client.seeweb_test_2
+        db = client[db_name]
         it = db.ip2as.find({}, {"_id":0, "address":1, "as_numbers":1})
         for record in it:
             assert len(record['as_numbers']) <= 1
