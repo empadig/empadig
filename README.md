@@ -8,7 +8,7 @@ EmpaDig is an automated tool for inferring the most important routing events sta
   - PyMongo v2.6.3
   - NetworkX v1.8.1
 - Node.js v0.10.25
-  - A bunch of Node.js libraries (go to ```scripts/``` and type ```npm install```) 
+  - A bunch of Node.js libraries (just type ```npm install``` from the root) 
 - MongoDB v2.6.4
 
 ## HowTo
