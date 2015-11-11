@@ -51,7 +51,8 @@ Of course start.sh can be adapted to download, import and analyze multiple measu
 * The file algorithm/sortecollection.py, being an [active state](http://code.activestate.com/recipes/577197-sortedcollection/) recipe is under the [MIT License](https://opensource.org/licenses/MIT)
 * The rest of the project is under the AGPL-3.0 license
 
-    Copyright (C) 2015 Marco Di Bartolomeo, Valentino Di Donato, Maurizio Pizzonia, Claudio Squarcella, Massimo Rimondini
+    Empadig
+    Copyright (C) 2015 Marco Di Bartolomeo, Valentino Di Donato, Maurizio Pizzonia, Massimo Rimondini, Claudio Squarcella
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as
