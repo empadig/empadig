@@ -1,0 +1,12 @@
+{
+"name" : "empadig", 
+"version" : "1.0.0", 
+"dependencies" : {
+  "csv" : "0.3.6",
+  "binary-search" : "1.1.1",
+  "jsonschema" : "0.4.0",
+  "minimist" : "1.2.0",
+  "n-readlines" : "0.2.2",
+  "request" : "2.27.0"    
+  }
+}
