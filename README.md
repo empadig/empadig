@@ -13,7 +13,7 @@ EmpaDig is an automated tool for inferring the most important routing events sta
 
 ## HowTo
 
-* Go to the script/ directory
+* Go to the ```scripts/``` directory
 * Edit the file start.sh customizing the following variables:
  
   * start_timestamp=`date -d "2015-03-26 09:30:00" "+%s"`
