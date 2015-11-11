@@ -18,7 +18,7 @@ EmpaDig is an automated tool for inferring the most important routing events sta
  
   * start_timestamp=`date -d "2015-03-26 09:30:00" "+%s"`
   * end_timestamp=`date -d "2015-03-28 09:30:00" "+%s"`
-  * MSM_ID=1042245
+  * msm_id=1042245
   * db_name="outage"
 * ./start.sh
 
