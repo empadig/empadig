@@ -46,6 +46,11 @@ The algorithm generates the following files:
 
 Of course start.sh can be adapted to download, import and analyze multiple measurements
 
+## References
+* M. Di Bartolomeo, V. Di Donato, M. Pizzonia, C. Squarcella, M. Rimondini. *Discovering High-Impact Routing Events using Traceroutes*. Proceedings IEEE Symposium on Computers and Communications (ISCC), Larnaca, Cyprus, Jul. 2015
+* D. Ceneda, M. Di Bartolomeo, V. Di Donato, M. Patrignani, M. Pizzonia, M. Rimondini. *RoutingWatch: Visual Exploration and Analysis of Routing Events*. Proceedings IEEE/IFIP Network Operations and Management Symposium (NOMS), Istanbul, Turkey, Apr. 2016
+
+
 ## Licenses
 * This product includes GeoLite data created by MaxMind, available from [http://www.maxmind.com](http://www.maxmind.com)
 * The file algorithm/sortecollection.py, being an [active state](http://code.activestate.com/recipes/577197-sortedcollection/) recipe is under the [MIT License](https://opensource.org/licenses/MIT)
