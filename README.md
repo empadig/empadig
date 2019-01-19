@@ -1,35 +1,38 @@
+
 # EmpaDig
 
 EmpaDig is an automated tool for inferring the most important routing events starting from a large amount of traceroutes. Each inferred event is augmented with attributes that include an impact, an estimated time of occurrence, and a set of IP addresses that are likely to be close to the cause of the event.
 
+The algorithm implemented by the tool is described in the scientific paper [*Discovering High-Impact Routing Events using Traceroutes*](http://ieeexplore.ieee.org/document/7405531/).
+
 ## Dependencies
 
 - Python v2.7
-  - PyMongo v2.6.3
-  - NetworkX v1.8.1
+- PyMongo v2.6.3
+- NetworkX v1.8.1 (check this, later versions are incompatible)
 - Node.js v0.10.25
-  - A bunch of Node.js libraries (just type ```npm install``` from the root) 
+- A bunch of Node.js libraries (just type ```npm install``` from the root) 
 - MongoDB v2.6.4
+
+What follows assumes that an installation of MongoDB is running on the local machine.
 
 ## HowTo
 
+To rerun the experiments of the paper follow the following instructions. 
+
 * Go to the ```scripts/``` directory
-* Edit the file start.sh customizing the following variables:
- 
-  * start_timestamp=`date -d "2015-03-26 09:30:00" "+%s"`
-  * end_timestamp=`date -d "2015-03-28 09:30:00" "+%s"`
-  * msm_id=1042245
-  * db_name="outage"
-* ./start.sh
+* Run ```./start_amsix.sh``` to download data and run computation for experiment 3 of the paper
+* Run ```./start_isp.sh``` to download data and run computation for experiment 1 of the paper
+
 
 EmpaDig scripts execute the following operations:
 
-* Download data from the RIPE Atlas API
+* Download data from the RIPE Atlas (using the RIPE Atlas API)
 * Convert data to a custom format
 * Import data in a Mongo Database
-* Execute load balancing heuristic
-* Execute empadig algorithm with the load balancing heuristic
-* Execute empadig algorithm without the load balancing heuristic
+* Execute  heuristic to roughly infer load balancers
+* Execute empadig algorithm considering the load balancer data
+* Execute empadig algorithm without considering the load balancer data
 * Generate the associated charts and outputs 
 
 ## Output

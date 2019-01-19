@@ -267,17 +267,18 @@ function convertTraceroute(measurementData, skipValidation) {
 
 
 function getProbeMetadata(prb_id, asHolder, skipValidation, callback) {
-    var url = "https://atlas.ripe.net/api/v1/probe/?format=json&id=" + prb_id
+    var url = "https://atlas.ripe.net/api/v2/probes/" + prb_id
 
     request(url, function(err, response, body) {
         var data = JSON.parse(body);
         var result;
 
+        skipValidation=true
         if (!skipValidation) {
             var val = validate(data, probe_metadata_schema);
             if (val.errors.length > 0) {
                 console.error("-------");
-                console.error("WARNING: skipping malformed probe metadata, ", val.errors[0].stack);
+                console.error("WARNING: skipping malformed probe metadata, for prb_id=", prb_id, " ", val.errors[0].stack);
                 console.error(JSON.stringify(val.instance));
                 console.error("-------");
                 result = {};
@@ -286,7 +287,7 @@ function getProbeMetadata(prb_id, asHolder, skipValidation, callback) {
             }
         }
 
-        var data = data.objects[0];
+        //var data = data.objects[0];
 
         result = {
             prb_id : parseInt(prb_id),
@@ -312,7 +313,7 @@ function getProbeMetadata(prb_id, asHolder, skipValidation, callback) {
             result.v6_as_holder = asHolder[result.v6_as];
         } else {
             console.error("-------");
-            console.error("WARNING: no AS holder info could be found for probe");
+            console.error("WARNING: no AS holder info could be found for probe ", prb_id );
             console.error(JSON.stringify(result));
             console.error("-------");
             result.v4_as_holder = "UNKNOWN HOLDER FOR AS" + result.v4_as;
