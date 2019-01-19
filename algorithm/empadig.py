@@ -4,10 +4,10 @@ import sys
 import time, calendar
 from datetime import datetime
 from datetime import timedelta
-import json
 import argparse
 import random
 import math
+import json
 import correlation_graph_analysis
 from pprint import pprint
 from pymongo import *
@@ -17,6 +17,9 @@ import networkx.algorithms.approximation
 #import pygraphviz
 from sortedcontainers import SortedSet
 
+from collections import namedtuple
+
+CandidateEvent = namedtuple("CandidateEvent", "start end ip sdpairs")
 
 fmt="%Y-%m-%d %H:%M:%S"
 
@@ -340,10 +343,10 @@ class EqSet:
 
     @staticmethod
     def load(stream):
-        log("loading stream: " + str(stream))
+        log("loading load balancer file: " + str(stream))
         import pickle
         loaded=pickle.Unpickler(stream).load()
-        log("loaded stream")
+        log("loaded.")
         e=EqSet()
         e.sets=loaded['sets']
         e.elements=loaded['elements']
@@ -735,7 +738,7 @@ def compareTr_diff7_test():
     assert d2==[ "*" ]
 
 #    import pdb; pdb.set_trace()
-     
+
 
 
 # ==== Events    
@@ -1295,10 +1298,24 @@ class Ip2ASresolver:
     def getASInfo(self, ip):
         if len(ip)>1 and ip[-1]=="*": #strip '*' off if any
             ip=ip[:-1]
+
+
         try:
-            return self._map[ip]
+            as_number, as_name = self._map[ip]
         except:
-            return (None,None)
+            as_number, as_name  = (None,None)
+        return ( as_number, as_name )
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1566,6 +1583,8 @@ def op_analysis():
 
 def op_great_analysis():
 
+    global AS
+
     if args.load:
         log("Loading load balancers from file: %s" % args.load )
         eqset= EqSet.load(file(args.load))
@@ -1578,7 +1597,8 @@ def op_great_analysis():
         pairs = find_prb_dest_pairs_for_AS(AS)
     else:
         pairs = find_prb_dest_pairs_all()
-        
+    log("### number of sdpairs: %d" %len(pairs))
+
     log("computing transitions")
     # index transitions by start and end
     timestamps = SortedSet()
@@ -1588,9 +1608,9 @@ def op_great_analysis():
     num_transitions = 0
     # sd-pairs for which some traceroute is found in the given time interval
     nonempty_sdpairs = []
-    
+
+
     time_start_of_phase1 = datetime.now()
-    log("### num pairs: %s" %len(pairs))
     for destination, probe in pairs:
         num_traceroutes_sd = count_traceroutes(probe, destination, tmin, tmax)
         num_traceroutes += num_traceroutes_sd
@@ -1602,10 +1622,15 @@ def op_great_analysis():
             ips = [(ip, "pre") for ip in transition.pathfrom] + [(ip, "post") for ip in transition.pathto]
             timestamps.add(transition.from_timestamp)
             timestamps.add(transition.to_timestamp)
-            our_transition = (sd_pair, tuple(ips),
-                              tuple(transition.pathfrom), tuple(transition.pathto),
-                              transition.from_timestamp, transition.to_timestamp,
-                              transition.lengthfrom, transition.lengthto, transition.distance,
+            our_transition = (sd_pair,
+                              tuple(ips),
+                              tuple(transition.pathfrom),
+                              tuple(transition.pathto),
+                              transition.from_timestamp,
+                              transition.to_timestamp,
+                              transition.lengthfrom,
+                              transition.lengthto,
+                              transition.distance,
                               frm, transition, to)
             if not transition.from_timestamp in t2transitionStart:
                 t2transitionStart[transition.from_timestamp] = set()
@@ -1614,13 +1639,13 @@ def op_great_analysis():
             t2transitionStart[transition.from_timestamp].add(our_transition)
             t2transitionEnd[transition.to_timestamp].add(our_transition)
 
-    time_start_of_phase2 = datetime.now()
-    
-    log("phase 1 (transitions) took %d seconds for %d traceroutes and %d transitions." % ( (time_start_of_phase2-time_start_of_phase1).total_seconds(), num_traceroutes, num_transitions) )
 
-    log("computing max cliques for each ip")
-    typedIp2queue = {}
-    t2cliqueStart = {}
+    time_start_of_phase2 = datetime.now()
+
+    log("phase 1 (transitions) took %d seconds for %d traceroutes and %d transitions." % ( (time_start_of_phase2-time_start_of_phase1).total_seconds(), num_traceroutes, num_transitions) )
+    log("computing candidate events, one for each extended ip ")
+    typedIp2queue = {}  # mapping from extended ip to queue of length 2 of <timestamp, set of sd-pairs>, the set of sd-pairs is represented as a tuple
+    t2cliqueStart = {}  # clique = candidate event
     t2cliqueEnd = {}
     num_cliques=0
     log("    numumber of timestamps to iter on: %d" % len(timestamps))
@@ -1629,20 +1654,25 @@ def op_great_analysis():
         if counter % (int(len(timestamps) * 0.01)) == 0:
             log("      timestamp: %d / %d" % (counter, len(timestamps)))
         counter += 1
-        if t in t2transitionEnd:
-            for transition in t2transitionEnd[t]:
-                for ip in transition[1]:
-                    current_state = (t, tuple(set(typedIp2queue[ip][1][1]) - {transition[0]}))
+        if t in t2transitionEnd:  # in t there is some transitions that end
+            for transition in t2transitionEnd[t]:  # let's iter over those that end
+                for ip in transition[1]:  #let's iter over its extended ip's
+                    current_state = (t, typedIp2queue[ip][1][1] - {transition[0]}) # remove the sd-pair (since this transition ends)
                     if len(typedIp2queue[ip][1][1]) > len(typedIp2queue[ip][0][1]):
-                        # clique is: (start, end, ip, sd_pairs)
-                        clique = (typedIp2queue[ip][1][0], t, ip, typedIp2queue[ip][1][1])
-                        if not clique[0] in t2cliqueStart:
-                            t2cliqueStart[clique[0]] = set()
-                        if not clique[1] in t2cliqueEnd:
-                            t2cliqueEnd[clique[1]] = set()
-                        t2cliqueStart[clique[0]].add(clique)
-                        t2cliqueEnd[clique[1]].add(clique)
+                        # clique is: (start, end, ip, sdpairs)
+                        clique = CandidateEvent(start=typedIp2queue[ip][1][0],
+                                                end=t,
+                                                ip=ip,
+                                                sdpairs=tuple(sorted(typedIp2queue[ip][1][1]))
+                                                )
+                        if not clique.start in t2cliqueStart:
+                            t2cliqueStart[clique.start] = set()
+                        if not clique.end in t2cliqueEnd:
+                            t2cliqueEnd[clique.end] = set()
+                        t2cliqueStart[clique.start].add(clique)
+                        t2cliqueEnd[clique.end].add(clique)
                         num_cliques+=1
+                        # comment R2.10a: gather size of S_A, that is len(sd_pairs) and make densit
 
                     #update queue
                     typedIp2queue[ip].pop(0)
@@ -1653,12 +1683,14 @@ def op_great_analysis():
                 for ip in transition[1]:
                     #initialize queue
                     if not ip in typedIp2queue:
-                        typedIp2queue[ip] = [(0, tuple()), (0, tuple())]
-                    current_state = (t, tuple(set(typedIp2queue[ip][1][1]) | {transition[0]}))
+                        typedIp2queue[ip] = [(0, set()), (0, set())]  # queue of length 2, [first, last]
+
+                    # add the sd-pair of the transition to the set of sd-pairs of the extended ip.
+                    current_state = (t, typedIp2queue[ip][1][1] | {transition[0]})
 
                     #update queue
-                    typedIp2queue[ip].pop(0)
-                    typedIp2queue[ip].append(current_state)
+                    typedIp2queue[ip].pop(0)  # remove the first
+                    typedIp2queue[ip].append(current_state) # enqueue a new one
     # log("t2cliqueEnd: ")
     # log(str(json.dumps(t2cliqueEnd, indent=4)))
     # log("")
@@ -1668,11 +1700,34 @@ def op_great_analysis():
     time_start_of_phase3 = datetime.now()
     log("phase 2 (computing candidate events (cliques)) took %d seconds for %d cliques." % ((time_start_of_phase3-time_start_of_phase2).total_seconds(), num_cliques) )
 
+    if args.candidate_events_report != None:
+        lastCE={}  # mapping from extended ip to last candidate event for it.
+        with open(args.candidate_events_report, "w") as f:
+            f.write("start\tend\tip\tscopesize\tseparation_from_last_for_same_eIP\tAS_of_IP\n")
+            for t in timestamps:
+                if t in t2cliqueEnd:
+                    for c in t2cliqueEnd[t]:
+                        lastCE[c.ip] = c
+                if t in t2cliqueStart:
+                    for c in t2cliqueStart[t]:
+                        if c.ip in lastCE:
+                            prevCE = lastCE[c.ip]
+                            prevCE_sep = c.start - prevCE.end
+                        else:
+                            prevCE=None
+                            prevCE_sep = "-"
+
+                        lastCE[c.ip]=c
+
+                        asinfo = Ip2ASresolver.instance.getASInfo(c.ip[0])
+                        f.write("%d\t%d\t%s\t%d\t%s\t%s\n" % (c.start, c.end, c.ip, len(c.sdpairs), str(prevCE_sep), str(asinfo
+                                                                                                                         )))
+
 
     log("starting phase 3: creating inferred events")
     #creating inferred events
     inferred_events = []
-    current_cliques = set()
+    active = set()
     inferred_event_id = 0
     counter = 0
     for t in timestamps:
@@ -1680,35 +1735,42 @@ def op_great_analysis():
             log("      timestamp: %d / %d" % (counter, len(timestamps)))
         counter += 1
         if t in t2cliqueEnd:
-            for ending_clique in t2cliqueEnd[t]:
-		cliques_to_remove = set()
-                for current_clique in current_cliques:
-                    if len(current_clique[3]) < len(ending_clique[3]) and set(current_clique[3]).issubset(set(ending_clique[3])):
-                        cliques_to_remove.add(current_clique)
-		current_cliques = current_cliques.difference(cliques_to_remove)
+
+            # skip (remove from active) all candidate events in active whose sdparis is a *proper* subset of other active ones
+            for ending in t2cliqueEnd[t]:
+                cliques_to_remove = set()
+                for c in active:
+                    if len(c.sdpairs) < len(ending.sdpairs) and\
+                            set(c.sdpairs).issubset(set(ending.sdpairs)):   # proper subset check
+                        cliques_to_remove.add(c)
+                active = active.difference(cliques_to_remove)  #ignore them
+
+            #for all ending candidate events, gather sdpair sets and map them to set of pairs
+            # (extended ip sets, start time)
             sd_pair_set2ip_set = {}
-            for ending_clique in t2cliqueEnd[t].intersection(current_cliques):
-                if not ending_clique[3] in sd_pair_set2ip_set:
-                    sd_pair_set2ip_set[ending_clique[3]] = []
-                sd_pair_set2ip_set[ending_clique[3]].append((ending_clique[2],ending_clique[0]))
-                current_cliques.remove(ending_clique)
-            for sd_pair_tuple in sd_pair_set2ip_set:
-                max_timestamp = max(sd_pair_set2ip_set[sd_pair_tuple], key=lambda x: x[1])[1]
-                ips = map(lambda x: x[0], sd_pair_set2ip_set[sd_pair_tuple])
-                if len(list(sd_pair_tuple)) >= args.threshold:
+            for ending in t2cliqueEnd[t].intersection(active):
+                if not ending.sdpairs in sd_pair_set2ip_set:
+                    sd_pair_set2ip_set[ending.sdpairs] = []
+                sd_pair_set2ip_set[ending.sdpairs].append((ending.ip,ending.start))
+                active.remove(ending)
+
+            for sd_pair_set in sd_pair_set2ip_set:
+                max_timestamp = max(sd_pair_set2ip_set[sd_pair_set], key=lambda x: x[1])[1]
+                ips = map(lambda x: x[0], sd_pair_set2ip_set[sd_pair_set])
+                if len(list(sd_pair_set)) >= args.threshold:
                     inferred_events.append(
                         {
                         "id": inferred_event_id,
                         "start": max_timestamp,
                         "end": t,
-                        "sd_pairs": [{"probe": s, "target": d} for (s,d) in sd_pair_tuple],
+                        "sd_pairs": [{"probe": s, "target": d} for (s,d) in sd_pair_set],
                         "ips": list(ips)
                         }
                     )
                     inferred_event_id += 1
 
         if t in t2cliqueStart:
-            current_cliques.update(t2cliqueStart[t])
+            active.update(t2cliqueStart[t])
 
     time_end_of_phase3 = datetime.now()
     log("phase 3 (create inferred events) took %d seconds for %d inferred events." % ((time_end_of_phase3-time_start_of_phase3).total_seconds(), len(inferred_events)) )
@@ -1784,7 +1846,7 @@ def op_great_analysis():
         # Compute sd-pairs subject to some inferred event
         involved_sdpairs = set([(obj["probe"], obj["target"]) for event in inferred_events for obj in event["sd_pairs"]])
         json_report = {
-            "events": inferred_events, 
+            "events": inferred_events,
             "_num_traceroutes": num_traceroutes,
             "_num_transitions": num_transitions,
             "_num_events": len(inferred_events),
@@ -1794,8 +1856,152 @@ def op_great_analysis():
             "_command_line": repr(command_line)
         }
         with open("output.json", "w") as output_file:
-            output_file.write(json.dumps(json_report, indent=4))
+            json.dump(json_report,output_file,indent=4)
 
+
+
+
+def op_deltapreanalysis():
+
+
+
+    assert args.AS==0, "cannot filter by AS, not implmented"
+
+
+    if args.load:
+        log("Loading load balancers from file: %s" % args.load )
+        eqset= EqSet.load(file(args.load))
+    else:
+        log("*** running with no load balancer knowledge  (use --lbsets and then --load)***" )
+        eqset = EqSet()
+        eqset.computeRepresentatives()
+
+    # pairs = find_prb_dest_pairs_all()
+    # log("### number of sdpairs: %d" %len(pairs))
+
+    ## all traceroutes in db
+    if tmin==tmax==None:
+        cursor=(tr.find( {},
+                         {"hops": 1, "startTimestamp":1, "prb_id":1, "msm_id":1, "_id":0})
+                .sort("startTimestamp")
+                )
+    else:
+        cursor=(tr.find( {"startTimestamp": {"$gte":tmin, "$lte": tmax } },
+                         {"hops": 1, "startTimestamp":1, "prb_id":1, "msm_id":1, "_id":0})
+                .sort("startTimestamp")
+                )
+
+    cursor.noCursorTimeout()
+
+
+    class DeltapreStat():
+        __slots__ = ['ts','count', 'expired']
+        def __init__(self, ts):
+            self.ts = ts
+            self.count = 0
+            self.expired = False
+
+        def inc(self):
+            assert not self.expired
+            self.count += 1
+
+        def expire(self):
+            self.expired = True
+
+
+
+    # track the addresses appearing in delta pre
+    tr_status = {}  # mapping da coppie (prb_id,msm_id) un traceroute come ritornato da extract()
+    deltapre_status = {} # mapping from address to a list of DeltapreStat(timestamps, counter)
+                    # each element is related to an occurrence of the address in a deltapre
+                    # counter is the number of times addr was observed
+                    # in a traceroute before T seconds from timestamps
+
+    T = args.T
+
+    log("reading and processing data with T="+str(T)+"..." )
+
+    strtimeprev=""
+    for curr in cursor:
+        # if "prb_id" not in curr or "msm_id" not in curr: #skip malformed
+        #     continue
+        p=curr["prb_id"]
+        m=curr["msm_id"]
+        sdpair=(p,m)
+
+        crr = extract(curr, eqset)
+
+        strtimenow = time.strftime( "%Y-%m-%d %H", time.gmtime(crr.timestamp))
+        if strtimenow != strtimeprev:
+            strtimeprev = strtimenow
+            log(strtimenow, True)
+            count_active = 0
+            count_inactive = 0
+            for addr in deltapre_status:
+                dpslist = deltapre_status[addr]
+                for dps in dpslist:
+                    if dps.count == 0:
+                        count_inactive += 1
+                    else:
+                        count_active += 1
+            log(" active: %d, inactive %d" %(count_active, count_inactive ))
+
+
+
+        prv = tr_status.get(sdpair, None) # the first returns None, others a traceroute
+        if prv == None:
+            tr_status[sdpair] = crr
+            continue
+
+        if not prv.timestamp < crr.timestamp: # skip inverted
+            continue
+
+
+        for addr in crr.path:
+            if addr in deltapre_status:
+                tslist = deltapre_status[addr]
+                for idx in xrange(len(tslist)):
+                    dps = tslist[idx]
+                    if crr.timestamp - dps.ts > T: # expired
+                        dps.expire()
+                    else:
+                        dps.inc()
+
+
+        d = comparePaths(prv.path, crr.path)
+        tre = TrEvent(d, p, m, prv.timestamp, crr.timestamp, prv.rtt, crr.rtt) # this is a transition
+        if tre.distance > 0:
+            for addr in tre.pathfrom:
+                if addr == "*":  # skip missing addresses
+                    continue
+
+                if addr not in deltapre_status:
+                    deltapre_status[addr] = []
+
+                deltapre_status[addr].append( DeltapreStat(tre.to_timestamp) )
+
+
+            #yield prv, tre, crr
+        prv = crr
+
+    log("reporting...")
+    count_active = 0
+    count_inactive = 0
+    with open(args.FN, "w") as f:
+        for addr in deltapre_status:
+            dpslist = deltapre_status[addr]
+            for dps in dpslist:
+                f.write("%s\t%d\t%d\t%d\n" % (addr,
+                                              dps.count,
+                                              dps.ts,
+                                              1 if dps.expired else 0 ))
+                if dps.count == 0:
+                    count_inactive += 1
+                else:
+                    count_active += 1
+    log("active address occurrences:" + str(count_active))
+    log("inactive address occurrences:" + str(count_inactive))
+    return
 
 def op_viz():
     timestr="2014-04-06 7:30:00"
@@ -1903,7 +2109,7 @@ def op_lbsets():
 
     for rep, s in L:
         if args.net:
-            whoisinfo=whoisInetnum(rep)
+            whoisinfo=unicode(whoisInetnum(rep),errors="replace")
             try:
                 import socket
                 socket.setdefaulttimeout(0.3)
@@ -2208,6 +2414,52 @@ def init_argparser():
                       action="store", 
                       default=False)
 
+    subp.add_argument("--candidate-events-report",
+                      metavar="FN",
+                      type=str,
+                      help="Consider the candidate events. This option dumps, in a file named FN, "
+                           "one record for each candidate event. Fields are start (unix time), end (unix time), "
+                           "IP, size of its scope (i.e. number of sd-pairs), seapartion in seconds from previous "
+                           "CE form the same eIP (or None for the first).",
+                      action="store",
+                      default=None)
+
+    subp = subparsers.add_parser("deltapreanalysis",
+                        help="Count how many time an address occurring in delta^pre of a transition, "
+                             "ending at t_end,"
+                             "is observed in traceroutes that are recorded between t_end and t_end+T."
+                               )
+
+    subp.add_argument("T",
+                        help="the extent the analysis looks into the future for occurence of an address.",
+                        type=int,
+                        action="store",
+                        default=None)
+
+    subp.add_argument("FN",
+                      help="Write the output to a file named FN. Each line contains an address A, and a count "
+                           "C (an integer), a timestamp, and a boolean in {0,1}. For each occurrence of any address A in "
+                           "any deltapre that is different from '*' we report a record. "
+                           "C counts the number of traceroutes containing A that appeard not later"
+                           "than T seconds that the end of the transition of the deltapre. The "
+                           "timestamp reported is the end timestamp of the transition. The flag is true if"
+                           "the T seconds passed and at least a traceroute was processed that recognised "
+                           "the occurrence as enough old to not consider it any longer.",
+                      type=str,
+                      action="store",
+                      default=None)
+
+
+    subp.add_argument("--load",
+                      action='store',
+                      help="loads information aboud load balancers previously saved. Provide a filename as argument.",
+                      metavar='FILENAME'
+                      )
+
+
+
+
+
     subparsers.add_parser('viz', help='provides detailed information for a specific instant of time')
 
     subparsers.add_parser('lbreport', help='report about internal state of the load balancers inference')
@@ -2312,3 +2564,11 @@ Ip2ASresolver.instance=Ip2ASresolver()
 
 # call the op_* function specified by args.op
 globals().__getitem__('op_'+args.op)()
+
+
+    
+
+    
+    
+    
+    
