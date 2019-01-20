@@ -1,6 +1,4 @@
-
-# EmpaDig
-
+# Empadig
 EmpaDig is an automated tool for inferring the most important routing events starting from a large amount of traceroutes. Each inferred event is augmented with attributes that include an impact, an estimated time of occurrence, and a set of IP addresses that are likely to be close to the cause of the event.
 
 The algorithm implemented by the tool is described in the scientific paper [*Discovering High-Impact Routing Events using Traceroutes*](http://ieeexplore.ieee.org/document/7405531/). This repository also contains scripts to run two experiments, one of which is from the above paper. Data for the experiments are automatically downloaded from RIPE Atlas.
