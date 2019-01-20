@@ -94,5 +94,5 @@ for event in all_events:
             flips,
             len(ips),
             ",".join([str(asn) for asn in asns]),
-            ",".join([str(holder) for holder in holders])
+            ",".join([holder.encode('ascii',errors="replace") if holder else "" for holder in holders])
     )

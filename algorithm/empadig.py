@@ -2121,7 +2121,15 @@ def op_lbsets():
             name=""
             whoisinfo=""
         ASnum, ASname= Ip2ASresolver.instance.getASInfo(rep)
-        f.write('%s %s %s %s %s\n'% (rep, name , whoisinfo, ASnum, ASname ))
+        wi=whoisinfo.encode("ascii", errors="replace")
+        asname = ASname if ASname else ""
+        asname = asname.encode("ascii", errors="replace")
+        f.write('%s %s %s %s %s\n'% (rep, name , wi, ASnum, asname))
+        # try:
+        # except :
+        #     print(wi)
+        #     print(ASname)
+        #     raise
         L=list(s)
         L.sort()
         for ip in L:
