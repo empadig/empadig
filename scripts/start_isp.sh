@@ -4,7 +4,7 @@
 # inputs
 start_timestamp=`date -d "2014-05-02 00:00:00" "+%s"`
 end_timestamp=`date -d "2014-05-13 23:59:59" "+%s"`
-esp="ixp"
+esp="isp"
 db_name="${esp}_traceroutes"
 
 #measurments id
