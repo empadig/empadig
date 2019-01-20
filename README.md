@@ -21,7 +21,7 @@ To run the experiments follow the following instructions.
 * Go to the ```scripts/``` directory
 * Run ```./start_isp.sh``` to download data and run computation for experiment 1 of the paper.
 * Run ```./start_amsix.sh``` to download data and run computation for experiment based on data for an outage of AMS-IX.  
-K. Koutalis, “Outage post-mortem: 13 May 2015, 100GE loop on AMS-IX ISP Peering LAN,” [https://atnog.at/pipermail/atnog/2015-May/000039.html], 2015. 
+K. Koutalis, “Outage post-mortem: 13 May 2015, 100GE loop on AMS-IX ISP Peering LAN,” https://atnog.at/pipermail/atnog/2015-May/000039.html, 2015. 
 The size of the data downloaded for this experiment is about 1GB (2GB in mongo).
 
 EmpaDig scripts execute the following operations:
